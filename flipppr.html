@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html> 
+	<head> 
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<title>flipppr</title> 
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js" type="text/javascript"></script>
+		<script src="http://jsii.googlecode.com/files/jsii-1.0.0.js" type="text/javascript"></script>
+		<script type="text/javascript">
+		<!--
+		Info = {
+				name: "flipppr",
+				author: "AndrewJ", 
+				version: "0.2",
+				date: "2011-04-21",
+				info: "flipppr is just eye candy.",
+				appendTo: function(tagName) {
+					var str = "<p>";
+					str += "<span class='title'>" + this.name + "</span>";
+					str += "&nbsp;<span class='description'>v" + this.version + "</span>";
+					str += "</p>";
+					$(tagName).append(str);
+				},
+				aboutText: function() {
+					str = this.name + " v" + this.version;
+					str += ", last modified: " + this.date;
+					str += " by: " + this.author + ".\n\n";
+					str += this.info;
+					return str;
+				}
+			}
+			
+			// Generate a random number between m and n-1
+			Math.randomMN = function (m, n) {
+				return m + Math.floor((n-m) * Math.random());
+			}
+			
+			// Private method
+			var randomColour = function () {
+				return Math.floor(0xffffff * Math.random()).toString(16);
+			}
+						
+			// Utility function			
+			var doTimes = function (n, fn) {
+				for (var i=0; i<n; i++)
+					fn(i);
+				return n;
+			}
+			
+			//---------------------------------
+			// Mini graphics library
+			var Gfx = {};
+			
+			Gfx.rectangle = function (ctx, x, y, w, h, borderColour, fillColour) {
+				ctx.strokeStyle = borderColour;
+				ctx.lineWidth = 1;
+				ctx.fillStyle = fillColour;
+				ctx.beginPath();
+				ctx.rect(x, y, w, h);
+				ctx.closePath();
+				ctx.fill();
+				ctx.stroke();
+				return ctx;
+			}
+			
+			Gfx.triangle = function (ctx, x1, y1, x2, y2, x3, y3, borderColour, fillColour) {
+				ctx.strokeStyle = borderColour;
+				ctx.fillStyle = fillColour;
+				ctx.lineWidth = 1;
+				ctx.beginPath();
+				ctx.moveTo(x1, y1);
+				ctx.lineTo(x2, y2);
+				ctx.lineTo(x3, y3);
+				ctx.closePath();
+				ctx.fill();
+				ctx.stroke();
+				return ctx;
+			}
+			
+			//---------------------------------
+			// This uses [jsii](http://code.google.com/p/jsii/)
+			// Base class: Flipper
+			var Flipper = Class.extend({
+				init: function (x, y, size) {
+					this.org_x = x || 0;
+					this.org_y = y || 0;
+					this.width = 40;
+					this.height = 40; 
+					this.borderColour = "#000000";
+				},					
+
+				// Draw it on a canvas context
+				renderOn: function (ctx) {
+					Gfx.rectangle(ctx, this.org_x, this.org_y, this.width, this.height, this.borderColour, randomColour());
+					return ctx;
+				},				
+			});
+			
+			// Variation on Flipper
+			var HorizontalFlipper = Flipper.extend({
+					renderOn: function (ctx) {
+						Gfx.rectangle(ctx, this.org_x, this.org_y, this.width, this.height/2, this.borderColour, randomColour());
+						Gfx.rectangle(ctx, this.org_x, this.org_y + this.height/2, this.width, this.height/2, this.borderColour, randomColour());
+						return ctx;
+					},
+			});
+			
+			// Another variation
+			var DiagonalFlipper = Flipper.extend({
+					renderOn: function (ctx) {
+						Gfx.triangle(ctx, 
+							this.org_x, this.org_y,
+							this.org_x + this.width, this.org_y,
+							this.org_x, this.org_y + this.height,
+							this.borderColour, randomColour());
+						Gfx.triangle(ctx, 
+							this.org_x, this.org_y + this.height,
+							this.org_x + this.width, this.org_y,
+							this.org_x + this.width, this.org_y + this.height,
+							this.borderColour, randomColour());
+						return ctx;
+					},
+			});
+			
+			//---------------------------------
+			// Namespace: flipppr
+			var flipppr = {
+
+				config: {
+					numX: 10,
+					numY: 10,
+					elementSize: 40,
+					spacing: 10,
+				},
+				
+				createGridOn: function (ctx) {
+					var elementSize = flipppr.config.elementSize;
+					var spacing = flipppr.config.spacing;
+					var margin = 10;
+					
+					doTimes(flipppr.config.numX, function (y) {
+						doTimes(flipppr.config.numY, function (x) {
+							var f = new DiagonalFlipper(margin+x*(elementSize+spacing), margin+y*(elementSize+spacing), elementSize);
+							f.renderOn(ctx);	
+							// Redraw at some interval
+							setInterval(function () {
+								f.renderOn(ctx);		
+							}, Math.randomMN(3, 60) * 1000); // do this every 3-60 seconds
+						});
+					});
+				},
+				
+				initialise: function () {
+					Info.appendTo("#header");
+					var canvas = document.getElementById("fcanvas");
+					var context = canvas.getContext("2d");
+					this.createGridOn(context);
+				},
+			}			
+			
+			$(document).ready(function() {
+					flipppr.initialise();
+			});
+			
+        -->
+		</script> 
+		<noscript><p>flipppr requires JavaScript to be enabled</p></noscript> 
+        
+        <style type="text/css"> 
+		<!--
+        	body { font-family: Helvetica, Arial, sans-serif; font-size: 10pt; width: 100%; padding: 5px; color: #333300; }
+			#header { border-bottom: 1px solid #666600; }
+			#container { padding-top: 10pt; }
+			.title { font-size: 150%; font-weight: bold; }
+			@media screen {
+				body { max-width: 1024px;  }
+			}
+        -->
+        </style>
+       
+        <meta name="viewport" content="width=device-width" />
+	</head> 
+	<body> 
+		<div id="header"></div> 
+		<div id="container"> 
+			<canvas id="fcanvas" width="1024px" height="1024px"/>
+		</div> 
+		<div id="footer"></div> 
+	</body> 
+</html>
