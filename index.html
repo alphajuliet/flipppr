@@ -27,15 +27,15 @@
 		<footer id="footer"></footer> 
 		
 		<script type="text/javascript" src="js/modernizr-1.7.min.js"></script>
-		<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.js"></script>
-		<script type="text/javascript" src="//jsii.googlecode.com/files/jsii-1.0.0.js"></script>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.js"></script>
+		<script type="text/javascript" src="http://jsii.googlecode.com/files/jsii-1.0.0.js"></script>
 		<script type="text/javascript">
 		<!--
 		Info = {
 			name: 'flipppr',
 			author: 'AndrewJ', 
-			version: '0.4',
-			date: "2011-06-26",
+			version: '0.5',
+			date: "2012-09-18",
 			info: 'flipppr is just eye candy.',
 			appendTo: function(tagName) {
 				var str = '<p>';
@@ -62,7 +62,11 @@
 		var randomColour = function () {
 			return Math.floor(0xffffff * Math.random()).toString(16);
 		}
-					
+		
+		var rgbToHex = function (r, g, b) {
+			return ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+		}
+		
 		// Utility function			
 		var doTimes = function (n, fn) {
 			for (var i=0; i<n; i++)
@@ -104,43 +108,63 @@
 		// This uses [jsii](http://code.google.com/p/jsii/)
 		// Base class: Flipper
 		var Flipper = Class.extend({
-			init: function (x, y, size) {
-				this.org_x = x || 0;
-				this.org_y = y || 0;
+			init: function (row, col) {
+				this.row = row || 0;
+				this.col = col || 0;
+				this.spacing = 10;
+				this.margin = 10;
 				this.width = 40;
 				this.height = 40; 
-				this.borderColour = "#000000";
+				
+				this.org_x = this.margin + this.row*(this.width + this.spacing) || 0;
+				this.org_y = this.margin + this.col*(this.height + this.spacing) || 0;
+				this.borderColour = "#000000";				
 			},					
 
+			// The next colour
+			nextColour: function () {
+				randomColour();	
+			},
+			
 			// Draw it on a canvas context
 			renderOn: function (ctx) {
-				Gfx.rectangle(ctx, this.org_x, this.org_y, this.width, this.height, this.borderColour, randomColour());
+				Gfx.rectangle(ctx, this.org_x, this.org_y, this.width, this.height, this.borderColour, this.nextColour());
 				return ctx;
 			},				
 		});
 		
 		// Variation on Flipper
-		var HorizontalFlipper = Flipper.extend({
+		var HorizontalFlipper = Flipper.extend({		
+			nextColour: function () {
+				return {upper: randomColour(), lower: randomColour()};
+			},
 			renderOn: function (ctx) {
-				Gfx.rectangle(ctx, this.org_x, this.org_y, this.width, this.height/2, this.borderColour, randomColour());
-				Gfx.rectangle(ctx, this.org_x, this.org_y + this.height/2, this.width, this.height/2, this.borderColour, randomColour());
+				Gfx.rectangle(ctx, this.org_x, this.org_y, this.width, this.height/2, this.borderColour, this.nextColour().upper);
+				Gfx.rectangle(ctx, this.org_x, this.org_y + this.height/2, this.width, this.height/2, this.borderColour, this.nextColour().lower);
 				return ctx;
 			},
 		});
 		
 		// Another variation
 		var DiagonalFlipper = Flipper.extend({
+			nextColour: function () {
+				var d2r = 0.01745329; // degrees to radians conversion factor
+				return {
+					upper: rgbToHex(255*Math.sin(this.row*10*d2r), 255*Math.sin(this.col*10*d2r), Math.randomMN(0,255)),
+					lower: randomColour()
+				};
+			},				
 			renderOn: function (ctx) {
 				Gfx.triangle(ctx, 
 					this.org_x, this.org_y,
 					this.org_x + this.width, this.org_y,
 					this.org_x, this.org_y + this.height,
-					this.borderColour, randomColour());
+					this.borderColour, this.nextColour().upper);
 				Gfx.triangle(ctx, 
 					this.org_x, this.org_y + this.height,
 					this.org_x + this.width, this.org_y,
 					this.org_x + this.width, this.org_y + this.height,
-					this.borderColour, randomColour());
+					this.borderColour, this.nextColour().lower);
 				return ctx;
 			},
 		});
@@ -151,23 +175,19 @@
 			config: {
 				numX: 10,
 				numY: 10,
-				elementSize: 40,
-				spacing: 10,
 			},
 			
 			createGridOn: function (ctx) {
-				var elementSize = flipppr.config.elementSize;
-				var spacing = flipppr.config.spacing;
-				var margin = 10;
 				
-				doTimes(flipppr.config.numX, function (y) {
-					doTimes(flipppr.config.numY, function (x) {
-						var f = new DiagonalFlipper(margin+x*(elementSize+spacing), margin+y*(elementSize+spacing), elementSize);
+				doTimes(flipppr.config.numX, function (x) {
+					doTimes(flipppr.config.numY, function (y) {
+						var f = new DiagonalFlipper(x, y);
 						f.renderOn(ctx);	
 						// Redraw at some interval
-						setInterval(function () {
-							f.renderOn(ctx);		
-						}, Math.randomMN(3, 60) * 1000); // do this every 3-60 seconds
+						setInterval(
+							function () { f.renderOn(ctx); }, 
+							Math.randomMN(1, 30) * 1000
+						); // do this every 1-30 seconds
 					});
 				});
 			},
